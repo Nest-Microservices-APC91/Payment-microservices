@@ -9,10 +9,12 @@ interface EnvVars {
   STRIPE_ENDPOINT_SECRET: string;
   SUCCESS_URL: string;
   CANCEL_URL: string;
+  NATS_SERVERS: string[];
 }
 
 const envsSchema = joi.object({
   PORT: joi.number().required().error(new Error('PORT IS REQUIRED')),
+  NATS_SERVERS: joi.array().items(joi.string()).required().error(new Error('NATS_SERVERS IS REQUIRED')),
   STRIPE_SECRET: joi.string().required().error(new Error('STRIPE_SECRET IS REQUIRED')),
   STRIPE_ENDPOINT_SECRET: joi.string().required().error(new Error('STRIPE_ENDPOINT_SECRET IS REQUIRED')),
   SUCCESS_URL: joi.string().required().error(new Error('SUCCESS_URL IS REQUIRED')),
@@ -21,7 +23,7 @@ const envsSchema = joi.object({
 
 const { error, value } = envsSchema.validate({
   ...process.env,
-  //NATS_SERVERS: process.env.NATS_SERVERS?.split(','), //para asegurarse que NATS_SERVERS se un string[]
+  NATS_SERVERS: process.env.NATS_SERVERS?.split(','), //para asegurarse que NATS_SERVERS se un string[]
 });
 
 if (error) {
@@ -33,6 +35,7 @@ const envVars: EnvVars = value;
 
 export const envs = {
   port: envVars.PORT,
+  natsServers: envVars.NATS_SERVERS,
   stripeSecret: envVars.STRIPE_SECRET,
   stripeEndpointSecret: envVars.STRIPE_ENDPOINT_SECRET,
   success_url: envVars.SUCCESS_URL,

@@ -1,0 +1,40 @@
+FROM --platform=$BUILDPLATFORM node:21-alpine3.19 as dev
+RUN mkdir -p /static && chown -R node:node /static
+USER node
+WORKDIR /app
+COPY package.json ./
+RUN npm install
+# este paso es para generar el client en prisma
+RUN npx prisma generate
+CMD ["npm", "run", "start:dev"]
+
+FROM --platform=$BUILDPLATFORM node:21-alpine3.19 as dev-deps
+RUN mkdir -p /static && chown -R node:node /static
+USER node
+WORKDIR /app
+COPY package.json package.json
+RUN npm install --frozen-lockfile
+
+FROM --platform=$BUILDPLATFORM node:21-alpine3.19 as builder
+WORKDIR /app
+COPY --from=dev-deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+FROM --platform=$BUILDPLATFORM node:21-alpine3.19 as prod-deps
+RUN mkdir -p /static && chown -R node:node /static
+USER node
+WORKDIR /app
+COPY package.json package.json
+RUN npm install --prod --frozen-lockfile
+
+FROM --platform=$BUILDPLATFORM node:21-alpine3.19 as prod
+EXPOSE 3000
+WORKDIR /app
+ENV APP_VERSION=${APP_VERSION}
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+
+# este paso es para generar el client en prisma
+RUN npx prisma generate
+CMD [ "node","dist/main.js"] 
